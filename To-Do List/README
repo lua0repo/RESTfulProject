@@ -1,6 +1,6 @@
 Creating a RESTful API for a To-Do List application involves several steps, including setting up the server, defining the data model, and implementing the CRUD (Create, Read, Update, Delete) operations. Below is a basic outline of how to create a To-Do List RESTful API using Node.js and Express, along with a simple in-memory data store.
 
-Step 1: Set Up Your Environment
+### **Step 1: Set Up Your Environment**
 Install Node.js: Make sure you have Node.js installed on your machine.
 Create a new directory for your project
 
