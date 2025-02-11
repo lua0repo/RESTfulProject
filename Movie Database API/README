@@ -1,0 +1,176 @@
+To create a RESTful API for storing and retrieving information about movies, we'll use Python and the Flask framework, as it’s lightweight and easy to set up for this type of task. We’ll also use SQLite to store the data since it’s simple to integrate and doesn’t require complex configurations.
+
+Here’s how we can structure and create this API:
+
+### Prerequisites:
+1. Install Flask and Flask-SQLAlchemy:
+```bash
+pip install flask flask_sqlalchemy
+```
+
+### Project Structure:
+```
+movie_api/
+│
+├── app.py          # Main application file
+└── models.py       # Define database models
+```
+
+### 1. Setting up the Flask app (`app.py`):
+
+```python
+from flask import Flask, request, jsonify
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize Flask app and database
+app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///movies.db'
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db = SQLAlchemy(app)
+
+# Import the Movie model
+from models import Movie
+
+# Route to create a new movie
+@app.route('/movies', methods=['POST'])
+def add_movie():
+    data = request.get_json()
+    
+    title = data.get('title')
+    director = data.get('director')
+    release_year = data.get('release_year')
+    genre = data.get('genre')
+    
+    if not all([title, director, release_year, genre]):
+        return jsonify({"error": "Missing required fields"}), 400
+    
+    new_movie = Movie(title=title, director=director, release_year=release_year, genre=genre)
+    db.session.add(new_movie)
+    db.session.commit()
+    
+    return jsonify({"message": "Movie added successfully", "movie": new_movie.to_dict()}), 201
+
+# Route to get all movies
+@app.route('/movies', methods=['GET'])
+def get_movies():
+    movies = Movie.query.all()
+    return jsonify([movie.to_dict() for movie in movies]), 200
+
+# Route to get a movie by its ID
+@app.route('/movies/<int:movie_id>', methods=['GET'])
+def get_movie(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    return jsonify(movie.to_dict()), 200
+
+# Route to update a movie
+@app.route('/movies/<int:movie_id>', methods=['PUT'])
+def update_movie(movie_id):
+    data = request.get_json()
+    movie = Movie.query.get_or_404(movie_id)
+    
+    movie.title = data.get('title', movie.title)
+    movie.director = data.get('director', movie.director)
+    movie.release_year = data.get('release_year', movie.release_year)
+    movie.genre = data.get('genre', movie.genre)
+    
+    db.session.commit()
+    
+    return jsonify({"message": "Movie updated successfully", "movie": movie.to_dict()}), 200
+
+# Route to delete a movie
+@app.route('/movies/<int:movie_id>', methods=['DELETE'])
+def delete_movie(movie_id):
+    movie = Movie.query.get_or_404(movie_id)
+    db.session.delete(movie)
+    db.session.commit()
+    
+    return jsonify({"message": "Movie deleted successfully"}), 200
+
+if __name__ == '__main__':
+    # Create the database if it doesn't exist
+    db.create_all()
+    app.run(debug=True)
+```
+
+### 2. Define the Movie model (`models.py`):
+
+```python
+from app import db
+
+class Movie(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    director = db.Column(db.String(255), nullable=False)
+    release_year = db.Column(db.Integer, nullable=False)
+    genre = db.Column(db.String(100), nullable=False)
+    
+    def __repr__(self):
+        return f'<Movie {self.title}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'director': self.director,
+            'release_year': self.release_year,
+            'genre': self.genre
+        }
+```
+
+### 3. How the API works:
+1. **POST /movies**: Add a new movie.
+   - Request body should include the `title`, `director`, `release_year`, and `genre` of the movie.
+   
+2. **GET /movies**: Retrieve a list of all movies.
+
+3. **GET /movies/<movie_id>**: Retrieve a movie by its ID.
+
+4. **PUT /movies/<movie_id>**: Update a movie by its ID. Can update any or all fields (`title`, `director`, `release_year`, `genre`).
+
+5. **DELETE /movies/<movie_id>**: Delete a movie by its ID.
+
+### 4. Example requests:
+
+1. **Add a new movie (POST)**:
+```json
+POST /movies
+{
+  "title": "Inception",
+  "director": "Christopher Nolan",
+  "release_year": 2010,
+  "genre": "Sci-Fi"
+}
+```
+
+2. **Get all movies (GET)**:
+```json
+GET /movies
+```
+
+3. **Get movie by ID (GET)**:
+```json
+GET /movies/1
+```
+
+4. **Update movie (PUT)**:
+```json
+PUT /movies/1
+{
+  "title": "Inception",
+  "director": "Christopher Nolan",
+  "release_year": 2010,
+  "genre": "Sci-Fi, Thriller"
+}
+```
+
+5. **Delete movie (DELETE)**:
+```json
+DELETE /movies/1
+```
+
+### Running the API:
+- To run the API, simply execute `python app.py` from the terminal.
+- The Flask app will run locally at `http://127.0.0.1:5000/`.
+
+### Conclusion:
+This setup provides a simple, RESTful API for storing and retrieving information about movies, with endpoints to create, read, update, and delete movie records. You can extend this project by adding more features such as authentication, validation, pagination, or even deploying it to a cloud platform.
